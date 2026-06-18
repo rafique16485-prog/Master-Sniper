@@ -17,7 +17,6 @@ st.markdown("""
     .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(59, 130, 246, 0.3); padding: 20px; border-radius: 15px; margin-bottom: 20px; }
     .neon-blue { color: #3b82f6; } .neon-green { color: #22c55e; font-weight: bold;} .neon-red { color: #ef4444; font-weight: bold;}
     .stButton>button { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 8px; padding: 10px; font-weight: bold; width: 100%; }
-    /* Metric styling */
     div[data-testid="stMetricValue"] { font-size: 28px; color: #22c55e; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
@@ -28,7 +27,6 @@ if 'access_token' not in st.session_state:
 st.markdown("<h1>🎯 Money Flow <span class='neon-blue'>Strategy</span></h1>", unsafe_allow_html=True)
 tab1, tab2 = st.tabs(["🔌 Upstox Connection", "⚡ Live Execution"])
 
-# --- TAB 1: CONNECTION ---
 with tab1:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     if st.session_state.access_token:
@@ -64,7 +62,6 @@ with tab1:
                 st.markdown(f"**[👉 CLICK HERE TO LOGIN TO UPSTOX]({login_url})**")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- TAB 2: LIVE EXECUTION (REAL API DATA) ---
 with tab2:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     st.subheader("📊 Live Market Pulse")
@@ -78,31 +75,35 @@ with tab2:
             url = 'https://api.upstox.com/v2/market-quote/quotes'
             headers = {
                 'Accept': 'application/json',
+                'Api-Version': '2.0',
                 'Authorization': f'Bearer {st.session_state.access_token}'
             }
-            # Upstox specific instrument keys for Indices
-            params = {
-                'instrument_key': 'NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,BSE_INDEX|SENSEX'
-            }
+            
+            # Yahan maine Nifty ke sath Reliance (Equity) ka bhi code daala hai testing ke liye
+            instrument_keys = 'NSE_INDEX|Nifty 50,NSE_EQ|INE002A01018'
+            params = {'instrument_key': instrument_keys}
             
             try:
                 response = requests.get(url, headers=headers, params=params)
-                if response.status_code == 200:
-                    data = response.json().get('data', {})
+                data_json = response.json()
+                
+                # --- X-RAY BOX (RAW DATA) ---
+                st.warning("🔍 **SYSTEM X-RAY (Upstox Raw Data):**")
+                st.json(data_json)
+                st.markdown("---")
+                
+                if data_json.get('status') == 'success':
+                    data = data_json.get('data', {})
                     
-                    # Extracting Last Traded Price (LTP)
                     nifty_ltp = data.get('NSE_INDEX|Nifty 50', {}).get('last_price', 'Error')
-                    bank_nifty_ltp = data.get('NSE_INDEX|Nifty Bank', {}).get('last_price', 'Error')
-                    sensex_ltp = data.get('BSE_INDEX|SENSEX', {}).get('last_price', 'Error')
+                    reliance_ltp = data.get('NSE_EQ|INE002A01018', {}).get('last_price', 'Error')
                     
                     st.markdown("### 📡 Real-Time Spot Prices")
-                    col1, col2, col3 = st.columns(3)
+                    col1, col2 = st.columns(2)
                     col1.metric("NIFTY 50", f"₹{nifty_ltp}")
-                    col2.metric("BANK NIFTY", f"₹{bank_nifty_ltp}")
-                    col3.metric("SENSEX", f"₹{sensex_ltp}")
-                    
+                    col2.metric("RELIANCE", f"₹{reliance_ltp}")
                 else:
-                    st.error("Data fetch karne mein problem aayi. Check API status.")
+                    st.error("API returned Error!")
             except Exception as e:
                 st.error(f"System Error: {e}")
                 
