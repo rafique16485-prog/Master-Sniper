@@ -99,3 +99,4 @@ with tab2:
     else:
         st.success("API Connected! Ready for Live Option Chain.")
     st.markdown("</div>", unsafe_allow_html=True)
+
