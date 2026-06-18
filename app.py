@@ -79,31 +79,34 @@ with tab2:
                 'Authorization': f'Bearer {st.session_state.access_token}'
             }
             
-            # Yahan maine Nifty ke sath Reliance (Equity) ka bhi code daala hai testing ke liye
-            instrument_keys = 'NSE_INDEX|Nifty 50,NSE_EQ|INE002A01018'
+            instrument_keys = 'NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,BSE_INDEX|SENSEX'
             params = {'instrument_key': instrument_keys}
             
             try:
                 response = requests.get(url, headers=headers, params=params)
                 data_json = response.json()
                 
-                # --- X-RAY BOX (RAW DATA) ---
-                st.warning("🔍 **SYSTEM X-RAY (Upstox Raw Data):**")
-                st.json(data_json)
-                st.markdown("---")
-                
-                if data_json.get('status') == 'success':
+                if response.status_code == 200 and 'data' in data_json:
                     data = data_json.get('data', {})
                     
-                    nifty_ltp = data.get('NSE_INDEX|Nifty 50', {}).get('last_price', 'Error')
-                    reliance_ltp = data.get('NSE_EQ|INE002A01018', {}).get('last_price', 'Error')
+                    # --- SMART EXTRACTION LOGIC FIX ---
+                    def get_ltp(symbol_pipe):
+                        symbol_colon = symbol_pipe.replace('|', ':')
+                        item = data.get(symbol_pipe) or data.get(symbol_colon) or {}
+                        return item.get('last_price') or item.get('ohlc', {}).get('close', 'Error')
+                    
+                    nifty_ltp = get_ltp('NSE_INDEX|Nifty 50')
+                    bank_nifty_ltp = get_ltp('NSE_INDEX|Nifty Bank')
+                    sensex_ltp = get_ltp('BSE_INDEX|SENSEX')
                     
                     st.markdown("### 📡 Real-Time Spot Prices")
-                    col1, col2 = st.columns(2)
+                    col1, col2, col3 = st.columns(3)
                     col1.metric("NIFTY 50", f"₹{nifty_ltp}")
-                    col2.metric("RELIANCE", f"₹{reliance_ltp}")
+                    col2.metric("BANK NIFTY", f"₹{bank_nifty_ltp}")
+                    col3.metric("SENSEX", f"₹{sensex_ltp}")
+                    
                 else:
-                    st.error("API returned Error!")
+                    st.error("Data fetch nahi hua. Check API status.")
             except Exception as e:
                 st.error(f"System Error: {e}")
                 
