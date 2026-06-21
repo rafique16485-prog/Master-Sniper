@@ -106,8 +106,3 @@ with tab2:
                     col3.metric("SENSEX", f"₹{sensex_ltp}")
                     
                 else:
-                    st.error("Data fetch nahi hua. Check API status.")
-            except Exception as e:
-                st.error(f"System Error: {e}")
-                
-    st.markdown("</div>", unsafe_allow_html=True)
